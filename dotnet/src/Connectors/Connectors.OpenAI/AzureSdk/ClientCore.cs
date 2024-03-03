@@ -295,6 +295,16 @@ internal abstract class ClientCore
 
         for (int iteration = 1; ; iteration++)
         {
+            if (iteration > 1 && chatExecutionSettings.ToolCallBehavior is not null)
+            {
+                var toolCallBehavior = chatExecutionSettings.ToolCallBehavior;
+                if (toolCallBehavior is ToolCallBehavior.KernelFunctions)
+                {
+                    // Tools might import or remove plugins themselves, so we need to reflect that within the current exchange.
+                    chatExecutionSettings.ToolCallBehavior?.ConfigureOptions(kernel, chatOptions);
+                }
+            }
+
             // Make the request.
             var responseData = (await RunRequestAsync(() => this.Client.GetChatCompletionsAsync(chatOptions, cancellationToken)).ConfigureAwait(false)).Value;
             this.CaptureUsageDetails(responseData.Usage);
@@ -468,6 +478,16 @@ internal abstract class ClientCore
         Dictionary<int, StringBuilder>? functionArgumentBuildersByIndex = null;
         for (int iteration = 1; ; iteration++)
         {
+            if (iteration > 1 && chatExecutionSettings.ToolCallBehavior is not null)
+            {
+                var toolCallBehavior = chatExecutionSettings.ToolCallBehavior;
+                if (toolCallBehavior is ToolCallBehavior.KernelFunctions)
+                {
+                    // Tools might import or remove plugins themselves, so we need to reflect that within the current exchange.
+                    chatExecutionSettings.ToolCallBehavior?.ConfigureOptions(kernel, chatOptions);
+                }
+            }
+
             // Make the request.
             var response = await RunRequestAsync(() => this.Client.GetChatCompletionsStreamingAsync(chatOptions, cancellationToken)).ConfigureAwait(false);
 
