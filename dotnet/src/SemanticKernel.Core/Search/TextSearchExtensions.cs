@@ -76,10 +76,10 @@ public static class TextSearchExtensions
     /// Create a <see cref="KernelFunction"/> which invokes <see cref="ITextSearch.SearchAsync(string, TextSearchOptions?, CancellationToken)"/>.
     /// </summary>
     /// <param name="textSearch">The ITextSearch instance to use.</param>
-    /// <param name="options">Optional KernelFunctionFromMethodOptions which allow the KernelFunction metadata to be specified.</param>
+    /// <param name="functionOptions">Optional KernelFunctionFromMethodOptions which allow the KernelFunction metadata to be specified.</param>
     /// <param name="searchOptions">Optional TextSearchOptions which override the options provided when the function is invoked.</param>
     /// <returns>A <see cref="KernelFunction"/> instance with a Search operation that calls the provided <see cref="ITextSearch.SearchAsync(string, TextSearchOptions?, CancellationToken)"/>.</returns>
-    public static KernelFunction CreateSearch(this ITextSearch textSearch, KernelFunctionFromMethodOptions? options = null, TextSearchOptions? searchOptions = null)
+    public static KernelFunction CreateSearch(this ITextSearch textSearch, KernelFunctionFromMethodOptions? functionOptions = null, TextSearchOptions? searchOptions = null)
     {
         async Task<IEnumerable<string>> SearchAsync(Kernel kernel, KernelFunction function, KernelArguments arguments, CancellationToken cancellationToken)
         {
@@ -103,10 +103,10 @@ public static class TextSearchExtensions
             return resultList;
         }
 
-        options ??= DefaultSearchMethodOptions();
+        functionOptions ??= DefaultSearchMethodOptions();
         return KernelFunctionFactory.CreateFromMethod(
                 SearchAsync,
-                options);
+                functionOptions);
     }
 
     /// <summary>
