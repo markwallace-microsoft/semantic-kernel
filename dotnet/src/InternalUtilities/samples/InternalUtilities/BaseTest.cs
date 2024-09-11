@@ -113,6 +113,20 @@ public abstract class BaseTest
         Console.WriteLine($"{message.Role}: {message.Content}");
         Console.WriteLine("------------------------");
     }
+
+    /// <summary>
+    /// Attempts to output the token usage from the reply message.
+    /// </summary>
+    /// <param name="replyMessage">Reply message</param>
+    protected void OutputUsage(ChatMessageContent replyMessage)
+    {
+        if (replyMessage.Metadata?.TryGetValue("Usage", out var usage) ?? false)
+        {
+            Console.WriteLine($"Usage: {usage?.AsJson()}");
+            Console.WriteLine("------------------------");
+        }
+    }
+
     protected sealed class LoggingHandler(HttpMessageHandler innerHandler, ITestOutputHelper output) : DelegatingHandler(innerHandler)
     {
         private static readonly JsonSerializerOptions s_jsonSerializerOptions = new() { WriteIndented = true };
