@@ -161,6 +161,8 @@ public abstract class BaseTest
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 this._output.WriteLine("=== RESPONSE ===");
                 this._output.WriteLine(responseContent);
+                string responseHeaders = JsonSerializer.Serialize(response.Headers, s_jsonSerializerOptions);
+                this._output.WriteLine(responseHeaders);
                 this._output.WriteLine(string.Empty);
             }
 

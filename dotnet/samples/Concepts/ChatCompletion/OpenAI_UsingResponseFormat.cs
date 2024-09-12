@@ -5,6 +5,7 @@ using Kusto.Cloud.Platform.Utils;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using OpenAI.Chat;
 
 namespace ChatCompletion;
 
@@ -25,14 +26,35 @@ public class OpenAI_UsingResponseFormat(ITestOutputHelper output) : BaseTest(out
         HttpClient httpClient = new(handler);
 
         OpenAIChatCompletionService chatCompletionService = new(
-            modelId: TestConfiguration.OpenAI.ChatModelId,
+            modelId: "gpt-4o-2024-08-06",
             apiKey: TestConfiguration.OpenAI.ApiKey,
             httpClient: httpClient);
+
+        // Enabled structured output so model outputs now reliably adhere to developer-supplied JSON Schemas.
+        var chatResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+            name: "animals",
+            jsonSchema: BinaryData.FromString("""
+                {
+                    "type": "object",
+                    "properties": {
+                        "animals": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "required": ["animals"],
+                    "additionalProperties": false
+                }
+                """),
+            strictSchemaEnabled: true);
 
         // Prompt execution settings will enable JSON mode and limit token count
         var settings = new OpenAIPromptExecutionSettings
         {
-            ResponseFormat = "json_object",
+            ResponseFormat = chatResponseFormat,
             MaxTokens = 100,
         };
 
@@ -43,7 +65,6 @@ public class OpenAI_UsingResponseFormat(ITestOutputHelper output) : BaseTest(out
         // the generation exceeded max_tokens or the conversation exceeded the max context length.
         var chatHistory = new ChatHistory("Respond in JSON format");
 
-        /*
         // This request should complete within allowed token count
         chatHistory.AddUserMessage("List the ten most popular animals");
         OutputLastMessage(chatHistory);
@@ -52,7 +73,6 @@ public class OpenAI_UsingResponseFormat(ITestOutputHelper output) : BaseTest(out
         chatHistory.AddAssistantMessage(replyMessage.Content!);
         OutputLastMessage(chatHistory);
         OutputUsage(replyMessage);
-        */
 
         // This request should exceed the allowed token count
         chatHistory = new ChatHistory("Respond in JSON format");
@@ -78,7 +98,7 @@ public class OpenAI_UsingResponseFormat(ITestOutputHelper output) : BaseTest(out
         while (finishReason.EqualsOrdinalIgnoreCase("length") && loop++ < 4)
         {
             // The model exceeded the token limit, so we need to continue the conversation
-            chatHistory.AddUserMessage("Continue with the next most popular animals");
+            chatHistory.AddUserMessage("Continue");
             replyMessage = await chatCompletionService.GetChatMessageContentAsync(chatHistory, executionSettings);
             OutputUsage(replyMessage);
             finishReason = replyMessage.Metadata?["FinishReason"]?.ToString() ?? string.Empty;
