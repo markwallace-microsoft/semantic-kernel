@@ -42,6 +42,19 @@ public sealed class AgentToolDefinition
     }
 
     /// <summary>
+    /// The description of the tool.
+    /// </summary>
+    public string? Description
+    {
+        get => this._description;
+        set
+        {
+            Verify.NotNull(value);
+            this._description = value;
+        }
+    }
+
+    /// <summary>
     /// Gets or sets the configuration for the tool.
     /// </summary>
     /// <remarks>
@@ -61,6 +74,7 @@ public sealed class AgentToolDefinition
     #region private
     private string? _type;
     private string? _name;
+    private string? _description;
     private IDictionary<string, object?>? _configuration;
     #endregion
 }
