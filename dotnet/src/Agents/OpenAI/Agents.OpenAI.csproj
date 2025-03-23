@@ -33,7 +33,7 @@
   <Import Project="$(RepoRoot)/dotnet/src/InternalUtilities/agents/AgentUtilities.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\Abstractions\Agents.Abstractions.csproj" />
+    <ProjectReference Include="..\Core\Agents.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
