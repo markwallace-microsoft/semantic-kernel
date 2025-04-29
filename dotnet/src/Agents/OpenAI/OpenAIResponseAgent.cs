@@ -66,8 +66,22 @@ public sealed class OpenAIResponseAgent : Agent
     }
 
     /// <inheritdoc/>
-    public override IAsyncEnumerable<AgentResponseItem<StreamingChatMessageContent>> InvokeStreamingAsync(ICollection<ChatMessageContent> messages, AgentThread? thread = null, AgentInvokeOptions? options = null, CancellationToken cancellationToken = default)
+    public override async IAsyncEnumerable<AgentResponseItem<StreamingChatMessageContent>> InvokeStreamingAsync(ICollection<ChatMessageContent> messages, AgentThread? thread = null, AgentInvokeOptions? options = null, CancellationToken cancellationToken = default)
     {
+        Verify.NotNull(messages);
+
+        var agentThread = await this.EnsureThreadExistsWithMessagesAsync(messages, thread, cancellationToken).ConfigureAwait(false);
+
+        // Invoke responses with the updated chat history.
+        var chatHistory = new ChatHistory();
+        chatHistory.AddRange(messages);
+        var invokeResults = this.InternalInvokeStreamingAsync(
+            this.Name,
+            chatHistory,
+            agentThread,
+            options,
+            cancellationToken);
+
         throw new NotImplementedException();
     }
 
@@ -82,7 +96,10 @@ public sealed class OpenAIResponseAgent : Agent
     [Experimental("SKEXP0110")]
     protected override IEnumerable<string> GetChannelKeys()
     {
-        throw new NotImplementedException();
+        // Distinguish from other channel types.
+        //yield return typeof(OpenAIResponseChannel).FullName!;
+        // Distinguish based on client instance.
+        yield return this.Client.GetHashCode().ToString();
     }
 
     /// <inheritdoc/>
@@ -146,6 +163,41 @@ public sealed class OpenAIResponseAgent : Agent
             message.AuthorName = this.Name;
 
             yield return message;
+        }
+    }
+
+    private async IAsyncEnumerable<StreamingChatMessageContent> InternalInvokeStreamingAsync(
+        string? agentName,
+        ChatHistory history,
+        AgentThread agentThread,
+        AgentInvokeOptions? options,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var kernel = options?.Kernel ?? this.Kernel;
+
+        var overrideHistory = history;
+        if (!this.StoreEnabled)
+        {
+            // Use the thread chat history
+            overrideHistory = [.. this.GetChatHistory(agentThread), .. history];
+        }
+
+        var inputItems = overrideHistory.Select(c => c.ToResponseItem());
+        var creationOptions = new ResponseCreationOptions()
+        {
+            EndUserId = this.GetDisplayName(),
+            Instructions = $"{this.Instructions}\n{options?.AdditionalInstructions}",
+            StoredOutputEnabled = this.StoreEnabled,
+        };
+        if (this.StoreEnabled && agentThread.Id != null)
+        {
+            creationOptions.PreviousResponseId = agentThread.Id;
+        }
+
+        var collectionResult = this.Client.CreateResponseStreamingAsync(inputItems, creationOptions, cancellationToken);
+        await foreach (var responseUpdate in collectionResult.ConfigureAwait(false))
+        {
+            yield return null; // new(responseUpdate, agentThread);
         }
     }
 
