@@ -137,28 +137,7 @@ public sealed class GeminiChatMessageContent : ChatMessageContent
     {
         this.ToolCalls = functionsToolCalls?.Select(tool => new GeminiFunctionToolCall(tool)).ToList();
 
-        // Also populate Items collection with FunctionCallContent for compatibility with FunctionChoiceBehavior
-        if (this.ToolCalls is not null)
-        {
-            foreach (var toolCall in this.ToolCalls)
-            {
-                KernelArguments? arguments = null;
-                if (toolCall.Arguments is not null)
-                {
-                    arguments = new KernelArguments();
-                    foreach (var arg in toolCall.Arguments)
-                    {
-                        arguments[arg.Key] = arg.Value;
-                    }
-                }
-
-                this.Items.Add(new FunctionCallContent(
-                    functionName: toolCall.FunctionName,
-                    pluginName: toolCall.PluginName,
-                    id: null, // Gemini doesn't provide call IDs
-                    arguments: arguments));
-            }
-        }
+        this.AddFunctionCallContents();
     }
 
     /// <summary>
@@ -191,6 +170,8 @@ public sealed class GeminiChatMessageContent : ChatMessageContent
             .Where(p => p.FunctionCall is not null)
             .Select(part => new GeminiFunctionToolCall(part))
             .ToList();
+
+        this.AddFunctionCallContents();
     }
 
     /// <summary>
@@ -213,4 +194,31 @@ public sealed class GeminiChatMessageContent : ChatMessageContent
     /// The metadata associated with the content.
     /// </summary>
     public new GeminiMetadata? Metadata => (GeminiMetadata?)base.Metadata;
+
+    private void AddFunctionCallContents()
+    {
+        // Also populate Items collection with FunctionCallContent for compatibility with FunctionChoiceBehavior
+        if (this.ToolCalls is not null)
+        {
+            foreach (var toolCall in this.ToolCalls)
+            {
+                KernelArguments? arguments = null;
+                if (toolCall.Arguments is not null)
+                {
+                    arguments = new KernelArguments();
+                    foreach (var arg in toolCall.Arguments)
+                    {
+                        arguments[arg.Key] = arg.Value;
+                    }
+                }
+
+                this.Items.Add(new FunctionCallContent(
+                    functionName: toolCall.FunctionName,
+                    pluginName: toolCall.PluginName,
+                    id: null, // Gemini doesn't provide call IDs
+                    arguments: arguments));
+            }
+        }
+    }
+
 }
